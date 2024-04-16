@@ -1,17 +1,20 @@
-import globals from "globals";
-
-import path from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-import pluginJs from "@eslint/js";
-
-// mimic CommonJS variables -- not needed if using CommonJS
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({baseDirectory: __dirname, recommendedConfig: pluginJs.configs.recommended});
+import globals from 'globals';
+import pluginJs from '@eslint/js';
+import prettier from 'eslint-plugin-prettier/recommended';
 
 export default [
-  {files: ["**/*.js"], languageOptions: {sourceType: "commonjs"}},
-  {languageOptions: { globals: globals.node }},
-  ...compat.extends("airbnb-base"),
+    {
+        files: ['**/*.js', '**/*.mjs'],
+        languageOptions: { sourceType: 'module' },
+    },
+    { languageOptions: { globals: globals.node } },
+    pluginJs.configs.recommended,
+    prettier,
+    {
+        rules: {
+            'prettier/prettier': ['error', { singleQuote: true, tabWidth: 4 }],
+            'linebreak-style': ['error', 'unix'],
+            semi: ['error', 'always'],
+        },
+    },
 ];
