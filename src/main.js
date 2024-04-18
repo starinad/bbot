@@ -1,4 +1,5 @@
 import { USDMClient } from 'binance';
+import sendMessage from './telegram.js';
 
 const timeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
@@ -19,6 +20,8 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 });
 
 export default async () => {
+    sendMessage('Bbot is started!');
+
     const client = new USDMClient();
 
     const exchangeInfo = await client.getExchangeInfo();
@@ -62,11 +65,12 @@ export default async () => {
                 if (Math.abs(change) >= openInterests[symbol].threshold) {
                     openInterests[symbol].signals++;
 
-                    console.log(
+                    const msg =
                         `https://binance.com/uk-UA/futures/${symbol}: OI change ${change.toFixed(2)}% (${currencyFormatter.format((openInterest * change) / 100.0)}). ` +
-                            `Price: ${priceFormatter.format(price)}. ` +
-                            `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`,
-                    );
+                        `Price: ${priceFormatter.format(price)}. ` +
+                        `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`;
+                    sendMessage(msg);
+                    console.log(msg);
 
                     openInterests[symbol].data = [];
                 }

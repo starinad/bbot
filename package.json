@@ -23,6 +23,7 @@
     "*.js": "eslint --fix"
   },
   "dependencies": {
-    "binance": "^2.10.4"
+    "binance": "^2.10.4",
+    "node-telegram-bot-api": "^0.65.1"
   }
 }
