@@ -1,3 +1,9 @@
 #!/usr/bin/env node
 
-require('../src/main');
+import bbot from '../src/main.js';
+
+try {
+    await bbot();
+} catch (ex) {
+    console.error(`Something went wrong: ${ex}`);
+}

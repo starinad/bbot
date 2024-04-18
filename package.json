@@ -6,11 +6,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky"
   },
+  "type": "module",
   "bin": {
     "bbot": "./bin/bbot.js"
   },
   "devDependencies": {
-
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
@@ -23,7 +23,6 @@
     "*.js": "eslint --fix"
   },
   "dependencies": {
-    "binance-api-node": "^0.12.7",
-    "dotenv": "^16.4.5"
+    "binance": "^2.10.4"
   }
 }
