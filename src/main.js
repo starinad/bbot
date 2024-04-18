@@ -35,14 +35,17 @@ export default async () => {
     const openInterests = symbols.reduce((res, symbol) => {
         res[symbol] = {
             signals: 0,
-            threshold: 0.1,
-            interval: 180 * 1000, // 3m
+            threshold: 10,
+            interval: 240 * 1000, // 3m
             data: [],
         };
         return res;
     }, {});
 
     for (;;) {
+        let topNegative = { symbol: 'N/A', value: 0 };
+        let topPositive = { symbol: 'N/A', value: 0 };
+
         for await (const {
             symbol,
             openInterest,
@@ -67,10 +70,20 @@ export default async () => {
 
                     openInterests[symbol].data = [];
                 }
+
+                if (change > topPositive.value) {
+                    topPositive = { symbol, value: change };
+                } else if (change < topNegative.value) {
+                    topNegative = { symbol, value: change };
+                }
             }
         }
 
-        await sleep(15000);
+        console.log(
+            `Top positive: ${topPositive.symbol} (${topPositive.value.toFixed(2)}%). Top negative: ${topNegative.symbol} (${topNegative.value.toFixed(2)}%).`,
+        );
+
+        await sleep(25000);
     }
 };
 
