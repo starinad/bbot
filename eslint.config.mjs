@@ -7,7 +7,7 @@ export default [
         files: ['**/*.js', '**/*.mjs'],
         languageOptions: { sourceType: 'module' },
     },
-    { languageOptions: { globals: globals.node } },
+    { languageOptions: { globals: { ...globals.node, ...globals.es2021 } } },
     pluginJs.configs.recommended,
     prettier,
     {

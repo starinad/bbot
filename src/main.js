@@ -1,5 +1,23 @@
 import { USDMClient } from 'binance';
 
+const timeFormatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+});
+
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+});
+
+const priceFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 6,
+});
+
 export default async () => {
     const client = new USDMClient();
 
@@ -17,7 +35,7 @@ export default async () => {
     const openInterests = symbols.reduce((res, symbol) => {
         res[symbol] = {
             signals: 0,
-            threshold: 1,
+            threshold: 0.1,
             interval: 180 * 1000, // 3m
             data: [],
         };
@@ -25,8 +43,15 @@ export default async () => {
     }, {});
 
     for (;;) {
-        for await (const { symbol, openInterest, change, error } of symbols.map(
-            (symbol) => getOpenInterestChange(client, symbol, openInterests),
+        for await (const {
+            symbol,
+            openInterest,
+            change,
+            price,
+            timestamp,
+            error,
+        } of symbols.map((symbol) =>
+            getOpenInterestChange(client, symbol, openInterests),
         )) {
             if (error) {
                 console.error(`${symbol}: ${error}`);
@@ -35,8 +60,9 @@ export default async () => {
                     openInterests[symbol].signals++;
 
                     console.log(
-                        `${symbol}: detected open interest change ${change.toFixed(2)}% (${((openInterest * change) / 100.0).toFixed(2)} USDT). ` +
-                            `Signal number: ${openInterests[symbol].signals}`,
+                        `https://binance.com/uk-UA/futures/${symbol}: OI change ${change.toFixed(2)}% (${currencyFormatter.format((openInterest * change) / 100.0)}). ` +
+                            `Price: ${priceFormatter.format(price)}. ` +
+                            `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`,
                     );
 
                     openInterests[symbol].data = [];
@@ -44,7 +70,7 @@ export default async () => {
             }
         }
 
-        await sleep(10000);
+        await sleep(15000);
     }
 };
 
@@ -82,6 +108,7 @@ async function getOpenInterestChange(client, symbol, histOpenInterests) {
             symbol,
             change,
             openInterest: openInterest * price,
+            price,
             timestamp: time,
         };
     } catch (ex) {
