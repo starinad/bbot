@@ -39,20 +39,20 @@ export default async () => {
         res[symbol] = {
             signals: 0,
             threshold: 10,
-            interval: 240 * 1000, // 3m
+            interval: 5 * 60 * 1000,
             data: [],
         };
         return res;
     }, {});
 
     for (;;) {
-        let topNegative = { symbol: 'N/A', value: 0 };
-        let topPositive = { symbol: 'N/A', value: 0 };
+        let topNegative = { symbol: 'N/A', change: 0, value: 0 };
+        let topPositive = { symbol: 'N/A', change: 0, value: 0 };
 
         for await (const {
             symbol,
-            openInterest,
-            change,
+            openInterestChange,
+            openInterestChangePercent,
             price,
             timestamp,
             error,
@@ -62,11 +62,15 @@ export default async () => {
             if (error) {
                 console.error(`${symbol}: ${error}`);
             } else {
-                if (Math.abs(change) >= openInterests[symbol].threshold) {
+                if (
+                    Math.abs(openInterestChangePercent) >=
+                    openInterests[symbol].threshold
+                ) {
                     openInterests[symbol].signals++;
 
                     const msg =
-                        `https://binance.com/uk-UA/futures/${symbol}: OI change ${change.toFixed(2)}% (${currencyFormatter.format((openInterest * change) / 100.0)}). ` +
+                        `https://binance.com/uk-UA/futures/${symbol}: OI change ${openInterestChangePercent.toFixed(2)}% ` +
+                        `(${currencyFormatter.format(openInterestChange)}}). ` +
                         `Price: ${priceFormatter.format(price)}. ` +
                         `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`;
                     sendMessage(msg);
@@ -75,16 +79,25 @@ export default async () => {
                     openInterests[symbol].data = [];
                 }
 
-                if (change > topPositive.value) {
-                    topPositive = { symbol, value: change };
-                } else if (change < topNegative.value) {
-                    topNegative = { symbol, value: change };
+                if (openInterestChangePercent > topPositive.change) {
+                    topPositive = {
+                        symbol,
+                        value: openInterestChange,
+                        change: openInterestChangePercent,
+                    };
+                } else if (openInterestChangePercent < topNegative.change) {
+                    topNegative = {
+                        symbol,
+                        value: openInterestChange,
+                        change: openInterestChangePercent,
+                    };
                 }
             }
         }
 
         console.log(
-            `Top positive: ${topPositive.symbol} (${topPositive.value.toFixed(2)}%). Top negative: ${topNegative.symbol} (${topNegative.value.toFixed(2)}%).`,
+            `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}). ` +
+                `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}).`,
         );
 
         await sleep(25000);
@@ -105,29 +118,30 @@ async function getOpenInterestChange(client, symbol, histOpenInterests) {
             symbol,
             openInterest: openInterest * price,
             timestamp: time,
-            change: 0,
         });
 
-        if (histOpenInterests[symbol].data.length > 1) {
-            histOpenInterests[symbol].data = calculatePercentageChange(
-                histOpenInterests[symbol].data,
-            );
-        }
+        const first = histOpenInterests[symbol].data[0];
+        const last =
+            histOpenInterests[symbol].data[
+                histOpenInterests[symbol].data.length - 1
+            ];
 
-        const change = histOpenInterests[symbol].data.reduce(
-            (sum, { change }) => {
-                return sum + change;
-            },
-            0,
-        );
+        const openInterestChange = last.openInterest - first.openInterest;
+        const openInterestChangePercent =
+            first.openInterest === 0
+                ? 0
+                : (openInterestChange / first.openInterest) * 100;
 
-        return {
+        let res = {
             symbol,
-            change,
             openInterest: openInterest * price,
+            openInterestChange,
+            openInterestChangePercent,
             price,
             timestamp: time,
         };
+
+        return res;
     } catch (ex) {
         return { symbol, error: ex.message };
     }
@@ -135,18 +149,4 @@ async function getOpenInterestChange(client, symbol, histOpenInterests) {
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function calculatePercentageChange(histData) {
-    for (let i = 1; i < histData.length; i++) {
-        const current = histData[i];
-        const previous = histData[i - 1];
-        const change =
-            ((current.openInterest - previous.openInterest) /
-                previous.openInterest) *
-            100;
-        current.change = change;
-    }
-
-    return histData;
 }
