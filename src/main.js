@@ -19,8 +19,8 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 6,
 });
 
-export default async () => {
-    sendMessage('Bbot is started!');
+export default async (opts) => {
+    sendMessage('Bbot is started!', opts);
 
     const client = new USDMClient();
 
@@ -38,8 +38,8 @@ export default async () => {
     const openInterests = symbols.reduce((res, symbol) => {
         res[symbol] = {
             signals: 0,
-            threshold: 10,
-            interval: 5 * 60 * 1000,
+            threshold: opts.threshold,
+            interval: opts.interval * 60 * 1000,
             data: [],
         };
         return res;
@@ -73,7 +73,7 @@ export default async () => {
                         `(${currencyFormatter.format(openInterestChange)}}). ` +
                         `Price: ${priceFormatter.format(price)}. ` +
                         `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`;
-                    sendMessage(msg);
+                    sendMessage(msg, opts);
                     console.log(msg);
 
                     openInterests[symbol].data = [];
@@ -100,7 +100,7 @@ export default async () => {
                 `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}).`,
         );
 
-        await sleep(25000);
+        await sleep(opts.sleep);
     }
 };
 
@@ -147,6 +147,6 @@ async function getOpenInterestChange(client, symbol, histOpenInterests) {
     }
 }
 
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(s) {
+    return new Promise((resolve) => setTimeout(resolve, s * 1000));
 }
