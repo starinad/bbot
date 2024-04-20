@@ -2,6 +2,7 @@
 
 import bbot from '../src/main.js';
 import { Command } from 'commander';
+import logger from '../src/logger.js';
 
 try {
     const program = new Command();
@@ -16,8 +17,8 @@ try {
         .option('--telegram-token <telegram-token>', 'Telegram token')
         .parse();
 
-    console.log(`Running bot with the options:`);
-    console.log(program.opts());
+    logger.info(`Running bot with the options:`);
+    logger.info(program.opts());
 
     await bbot(program.opts());
 } catch (ex) {

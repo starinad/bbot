@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
+import logger from './logger.js';
 let bot;
 
 export default async (message, { telegramId, telegramToken }) => {
@@ -7,7 +8,7 @@ export default async (message, { telegramId, telegramToken }) => {
             bot ??= new TelegramBot(telegramToken, { polling: false });
             await bot.sendMessage(telegramId, message);
         } catch (ex) {
-            console.error(`Could not send message: ${ex.message}`);
+            logger.error(`Could not send message: ${ex.message}`);
         }
     }
 };

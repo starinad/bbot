@@ -1,5 +1,6 @@
 import { USDMClient } from 'binance';
 import sendMessage from './telegram.js';
+import logger from './logger.js';
 
 const timeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
@@ -20,6 +21,7 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 });
 
 export default async (opts) => {
+    logger.info('Bbot is started!');
     sendMessage('Bbot is started!', opts);
 
     const client = new USDMClient();
@@ -60,7 +62,7 @@ export default async (opts) => {
             getOpenInterestChange(client, symbol, openInterests),
         )) {
             if (error) {
-                console.error(`${symbol}: ${error}`);
+                logger.error(`${symbol}: ${error}`);
             } else {
                 if (
                     Math.abs(openInterestChangePercent) >=
@@ -74,7 +76,7 @@ export default async (opts) => {
                         `Price: ${priceFormatter.format(price)}. ` +
                         `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`;
                     sendMessage(msg, opts);
-                    console.log(msg);
+                    logger.info(msg);
 
                     openInterests[symbol].data = [];
                 }
@@ -95,7 +97,7 @@ export default async (opts) => {
             }
         }
 
-        console.log(
+        logger.info(
             `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}). ` +
                 `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}).`,
         );
