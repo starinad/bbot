@@ -107,8 +107,8 @@ function createPriceReader() {
         });
 
         wsClient.on('error', (data) => {
-            logger.error('ws saw error ', data?.wsKey);
-            reject('ws saw error ', data?.wsKey);
+            logger.error('ws saw error ' + data?.wsKey);
+            reject('ws saw error ' + data?.wsKey);
         });
 
         wsClient.on('formattedMessage', (data) => {
