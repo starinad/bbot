@@ -1,24 +1,11 @@
 import { USDMClient } from 'binance';
 import sendMessage from './telegram.js';
 import logger from './logger.js';
-
-const timeFormatter = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: false,
-});
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-});
-
-const priceFormatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 6,
-});
+import {
+    timeFormatter,
+    currencyFormatter,
+    priceFormatter,
+} from './formaters.js';
 
 export default async (opts) => {
     logger.info('Bbot is started!');
@@ -34,8 +21,6 @@ export default async (opts) => {
                 status === 'TRADING' && symbol.endsWith('USDT'),
         )
         .map(({ symbol }) => symbol);
-    // const symbols = ['ATAUSDT', 'BTCUSDT', 'ETHUSDT', 'LTCUSDT'];
-    // const symbols = ['ATAUSDT'];
 
     const openInterests = symbols.reduce((res, symbol) => {
         res[symbol] = {
@@ -48,8 +33,8 @@ export default async (opts) => {
     }, {});
 
     for (;;) {
-        let topNegative = { symbol: 'N/A', change: 0, value: 0 };
-        let topPositive = { symbol: 'N/A', change: 0, value: 0 };
+        let topNegative = { symbol: 'N/A', change: 0, value: 0, price: 0 };
+        let topPositive = { symbol: 'N/A', change: 0, value: 0, price: 0 };
 
         for await (const {
             symbol,
@@ -86,20 +71,22 @@ export default async (opts) => {
                         symbol,
                         value: openInterestChange,
                         change: openInterestChangePercent,
+                        price: price,
                     };
                 } else if (openInterestChangePercent < topNegative.change) {
                     topNegative = {
                         symbol,
                         value: openInterestChange,
                         change: openInterestChangePercent,
+                        price: price,
                     };
                 }
             }
         }
 
         logger.info(
-            `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}). ` +
-                `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}).`,
+            `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}) ${priceFormatter.format(topPositive.price)}. ` +
+                `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}) ${priceFormatter.format(topNegative.price)}.`,
         );
 
         await sleep(opts.sleep);
