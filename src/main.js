@@ -1,4 +1,4 @@
-import { USDMClient } from 'binance';
+import { USDMClient, WebsocketClient } from 'binance';
 import sendMessage from './telegram.js';
 import logger from './logger.js';
 import {
@@ -12,6 +12,7 @@ export default async (opts) => {
     sendMessage('Bbot is started!', opts);
 
     const client = new USDMClient();
+    const prices = await createPriceReader();
 
     const exchangeInfo = await client.getExchangeInfo();
 
@@ -44,7 +45,7 @@ export default async (opts) => {
             timestamp,
             error,
         } of symbols.map((symbol) =>
-            getOpenInterestChange(client, symbol, openInterests),
+            getOpenInterestChange(client, symbol, openInterests, prices),
         )) {
             if (error) {
                 logger.error(`${symbol}: ${error}`);
@@ -93,9 +94,43 @@ export default async (opts) => {
     }
 };
 
-async function getOpenInterestChange(client, symbol, histOpenInterests) {
+function createPriceReader() {
+    const prices = {};
+
+    return new Promise((resolve, reject) => {
+        const wsClient = new WebsocketClient({
+            beautify: true,
+        });
+
+        wsClient.on('open', (data) => {
+            logger.info('Web Socket connection opened: ' + data?.wsKey);
+        });
+
+        wsClient.on('error', (data) => {
+            logger.error('ws saw error ', data?.wsKey);
+            reject('ws saw error ', data?.wsKey);
+        });
+
+        wsClient.on('formattedMessage', (data) => {
+            data.forEach(({ symbol, markPrice }) => {
+                prices[symbol] = markPrice;
+            });
+
+            resolve(prices);
+        });
+
+        wsClient.subscribeAllMarketMarkPrice('usdm', 3000);
+    });
+}
+
+async function getOpenInterestChange(
+    client,
+    symbol,
+    histOpenInterests,
+    prices,
+) {
     try {
-        const { price } = await client.getSymbolPriceTicker({ symbol });
+        const price = prices[symbol] ?? 0;
         const { openInterest, time } = await client.getOpenInterest({ symbol });
 
         histOpenInterests[symbol].data = histOpenInterests[symbol].data.filter(
