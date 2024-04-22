@@ -34,13 +34,29 @@ export default async (opts) => {
     }, {});
 
     for (;;) {
-        let topNegative = { symbol: 'N/A', change: 0, value: 0, price: 0 };
-        let topPositive = { symbol: 'N/A', change: 0, value: 0, price: 0 };
+        let topNegative = {
+            symbol: 'N/A',
+            change: 0,
+            value: 0,
+            price: 0,
+            priceChange: 0,
+            priceChangePercent: 0,
+        };
+        let topPositive = {
+            symbol: 'N/A',
+            change: 0,
+            value: 0,
+            price: 0,
+            priceChange: 0,
+            priceChangePercent: 0,
+        };
 
         for await (const {
             symbol,
             openInterestChange,
             openInterestChangePercent,
+            priceChange,
+            priceChangePercent,
             price,
             timestamp,
             error,
@@ -58,8 +74,8 @@ export default async (opts) => {
 
                     const msg =
                         `https://binance.com/uk-UA/futures/${symbol}: OI change ${openInterestChangePercent.toFixed(2)}% ` +
-                        `(${currencyFormatter.format(openInterestChange)}}). ` +
-                        `Price: ${priceFormatter.format(price)}. ` +
+                        `(${currencyFormatter.format(openInterestChange)}). ` +
+                        `Price: ${priceFormatter.format(price)} (${priceChangePercent.toFixed(2)}%). ` +
                         `Time: ${timeFormatter.format(new Date(timestamp))}. Signal: ${openInterests[symbol].signals}`;
                     sendMessage(msg, opts);
                     logger.info(msg);
@@ -72,22 +88,28 @@ export default async (opts) => {
                         symbol,
                         value: openInterestChange,
                         change: openInterestChangePercent,
-                        price: price,
+                        price,
+                        priceChange,
+                        priceChangePercent,
                     };
                 } else if (openInterestChangePercent < topNegative.change) {
                     topNegative = {
                         symbol,
                         value: openInterestChange,
                         change: openInterestChangePercent,
-                        price: price,
+                        price,
+                        priceChange,
+                        priceChangePercent,
                     };
                 }
             }
         }
 
         logger.info(
-            `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}) ${priceFormatter.format(topPositive.price)}. ` +
-                `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}) ${priceFormatter.format(topNegative.price)}.`,
+            `Top positive: ${topPositive.symbol} ${topPositive.change.toFixed(2)}% (${currencyFormatter.format(topPositive.value)}) ${priceFormatter.format(topPositive.price)} ` +
+                `(${topPositive.priceChangePercent.toFixed(2)}%).` +
+                `Top negative: ${topNegative.symbol} ${topNegative.change.toFixed(2)}% (${currencyFormatter.format(topNegative.value)}) ${priceFormatter.format(topNegative.price)} ` +
+                `(${topNegative.priceChangePercent.toFixed(2)}%).`,
         );
 
         await sleep(opts.sleep);
@@ -141,6 +163,7 @@ async function getOpenInterestChange(
         histOpenInterests[symbol].data.push({
             symbol,
             openInterest: openInterest * price,
+            price: price,
             timestamp: time,
         });
 
@@ -156,11 +179,17 @@ async function getOpenInterestChange(
                 ? 0
                 : (openInterestChange / first.openInterest) * 100;
 
+        const priceChange = last.price - first.price;
+        const priceChangePercent =
+            first.price === 0 ? 0 : (priceChange / first.price) * 100;
+
         let res = {
             symbol,
             openInterest: openInterest * price,
             openInterestChange,
             openInterestChangePercent,
+            priceChange,
+            priceChangePercent,
             price,
             timestamp: time,
         };
